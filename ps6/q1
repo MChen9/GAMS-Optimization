@@ -1,0 +1,56 @@
+$title Rocket Control
+
+set     k       Time steps /0*100/;
+
+singleton sets   kf(k)   First time step /0/,
+                 kl(k)   Last time step /100/;
+
+parameter
+         tmax    Maximum thrust /3.5/,
+         alpha   Mass conversion factor /0.1/,
+         gamma   Drag scaling factor /0.3/,
+         beta    Altitude coefficient for drag /0.01/,
+         theta   Fraction of mass left at end /0.6/;
+
+nonnegative variables
+
+         V(k)    Velocity,
+         D(k)    Drag,
+         H(k)    Height,
+         M(k)    Mass,
+         T(k)    Thrust,
+         G(k)    Gravity,
+         DT      Time step;
+
+variable
+         HT    Terminal altitude;
+
+T.UP(k)  = tmax;
+M.LO(k) = theta;
+V.FX(kf) = 0;
+H.FX(kf) = 0;
+M.FX(kf) = 1;
+M.UP(k)=1;
+DT.L=0.01;
+DT.LO=1e-5;
+
+equations       height, velocity, fuel, htrap, vtrap, ftrap, objdef, gravity, dragforce;
+height(k+1)..   H(k+1) =e= H(k) + DT*V(k);
+velocity(k+1).. V(k+1) =e= V(k) + DT*((T(k) - D(k))/M(k) - G(k));
+fuel(k+1)..     M(k+1) =e= M(k) - DT * alpha * T(k);
+htrap(k+1)..    H(k+1) =e= H(k) + 0.5 * DT * (V(k+1)+V(k));
+vtrap(k+1)..    V(k+1) =e= V(k) + 0.5 * DT * ((T(k+1)-D(k+1))/M(k+1)-G(k+1) +  (T(k)-D(k))/M(k)-G(k) );
+ftrap(k+1)..    M(k+1) =e= M(k) - 0.5 * DT * alpha * (T(k+1) + T(k));
+objdef..        HT =e= H('100');
+gravity(k)..    G(k) =e= sqr(1/(1+H(k)));
+dragforce(k)..  D(k) =e= gamma*sqr(V(k))*exp(-beta*H(k))
+
+model q1_1 /height, velocity, fuel, gravity, dragforce, objdef/;
+solve q1_1 using nlp maximazing HT;
+Display HT.L;
+
+model q1_2 /htrap, vtrap, ftrap, gravity, dragforce, objdef/;
+solve q1_2 using nlp maximizing HT;
+
+
+

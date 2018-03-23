@@ -1,0 +1,43 @@
+$title hovercraft
+
+set      i /Alice, Bob/,
+         xy/x, y/,
+         k /0*200/;
+
+variables        V(i,k,xy)  velocity,
+                 X(i,k,xy)  position,
+                 DELTA      time step duration,
+                 A(i,k,xy)  thruster inputs,
+                 obj        ;
+
+V.FX("Alice","0","y")=20;
+V.FX("Alice","0","x")=0;
+X.FX("Alice","0","x")=0;
+X.FX("Alice","0","y")=0;
+X.FX("Bob","0","x")=0.5;
+X.FX("Bob","0","y")=0;
+V.FX("Bob","0","x")=30;
+V.FX("Bob","0","y")=0;
+DELTA.L=0.01;
+DELTA.LO=1e-5;
+
+equations
+maxacceleration, positionA, positionB, velocityA, velocityB, meetdef, meetvel, velocitiesmatch, objdef;
+maxacceleration(i,k)..    sum(xy, sqr(A(i,k,xy))) =L= sqr(0.5);
+positionA(i,k+1,xy)..     X('Alice',k+1,xy) =e= X('Alice',k,xy) + (DELTA* V('Alice',k,xy))/3600;
+positionB(i,k+1,xy)..     X('Bob',k+1,xy) =e= X('Bob',k,xy) + (DELTA* V('Bob',k,xy))/3600;
+velocityA(i,k+1,xy)..     V('Alice',k+1,xy) =e= V('Alice',k,xy) + DELTA*A('Alice',k,xy);
+velocityB(i,k+1,xy)..     V('Bob',k+1,xy) =e= V('Bob',k,xy) + DELTA*A('Bob',k,xy);
+meetdef(xy)..             X('Alice','200',xy) =e= X('Bob','200',xy);
+meetvel(i,xy)..           V(i,'200',xy) =e= 0;
+velocitiesmatch(xy)..     V('Alice','200',xy) =e= V('Bob','200',xy);
+objdef..                  obj =e= 200*DELTA;
+
+model q2_1 /maxacceleration, positionA, positionB, velocityA, velocityB, meetdef, meetvel, objdef/;
+solve q2_1 using nlp minimizing obj;
+
+model q2_2 /maxacceleration, positionA, positionB, velocityA, velocityB, meetdef, velocitiesmatch, objdef/;
+solve q2_2 using nlp minimizing obj;
+
+
+
